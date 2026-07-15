@@ -24,12 +24,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Only the runtime shared libs needed by PyMuPDF/Pillow/reportlab (no compilers)
+# Only the runtime shared libs needed by PyMuPDF/Pillow/reportlab (no compilers),
+# plus gosu for safely dropping root privileges after fixing volume ownership.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo \
     zlib1g \
+    gosu \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r botuser && useradd -r -g botuser botuser
+    && groupadd -r botuser && useradd -r -g botuser -m -d /home/botuser botuser
 
 # Bring in the pre-built Python packages from the builder stage
 COPY --from=builder /root/.local /home/botuser/.local
@@ -40,11 +42,16 @@ ENV PATH=/home/botuser/.local/bin:$PATH \
     PIP_NO_CACHE_DIR=1
 
 COPY . .
+COPY entrypoint.sh /entrypoint.sh
 
 RUN mkdir -p /app/temp /app/logs \
-    && chown -R botuser:botuser /app
+    && chown -R botuser:botuser /app /home/botuser \
+    && chmod +x /entrypoint.sh
 
-USER botuser
+# NOTE: we intentionally stay as root here. entrypoint.sh fixes ownership
+# of any bind-mounted volumes (which Docker creates as root on the host)
+# at container start, then execs the app as the unprivileged botuser via
+# gosu. Do NOT add `USER botuser` here or bind-mounted ./logs will break.
 
 # Health check hits the built-in aiohttp server (see app/health_server.py)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
@@ -52,4 +59,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 EXPOSE 8080
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "main.py"]
