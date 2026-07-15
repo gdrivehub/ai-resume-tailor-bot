@@ -22,7 +22,7 @@ from app.database.models import (
 from app.generators.docx_generator import build_resume_docx
 from app.generators.pdf_generator import build_resume_pdf
 from app.logger import logger
-from app.storage.dump_channel import dump_manager
+from app.storage import dump_channel
 from app.utils.hashing import combo_hash
 from app.utils.rate_limiter import rate_limiter
 from app.utils.validators import sanitize_text
@@ -55,6 +55,13 @@ def register(app: Client) -> None:
             await _no_resume_or_jd_message(message, bool(resume), bool(jd))
             return
 
+        if dump_channel.dump_manager is None:
+            await message.reply_text(
+                "❌ File storage isn't configured yet on this bot (dump channel unreachable). "
+                "Please contact the bot admin."
+            )
+            return
+
         status = await message.reply_text("🤖 Tailoring your resume with AI... this can take up to a minute.")
 
         try:
@@ -64,7 +71,7 @@ def register(app: Client) -> None:
                 cached = await get_history_by_combo(user_id, combo)
                 if cached:
                     await status.edit_text("♻️ Found a cached tailored resume for this exact resume+JD combo. Sending it now...")
-                    await dump_manager.forward_to_user(user_id, cached["dump_message_id"])
+                    await dump_channel.dump_manager.forward_to_user(user_id, cached["dump_message_id"])
                     await log_event("tailor_cache_hit", user_id)
                     return
 
@@ -102,8 +109,8 @@ def register(app: Client) -> None:
 
             last_dump_msg = None
             for path in files_to_send:
-                last_dump_msg = await dump_manager.upload_document(path, caption=caption)
-                await dump_manager.forward_to_user(user_id, last_dump_msg.id)
+                last_dump_msg = await dump_channel.dump_manager.upload_document(path, caption=caption)
+                await dump_channel.dump_manager.forward_to_user(user_id, last_dump_msg.id)
                 os.remove(path)
 
             await add_history(

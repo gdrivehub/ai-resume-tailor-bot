@@ -6,7 +6,7 @@ from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.database.models import list_history
-from app.storage.dump_channel import dump_manager
+from app.storage import dump_channel
 
 
 def register(app: Client) -> None:
@@ -36,6 +36,9 @@ def register(app: Client) -> None:
 
     @app.on_callback_query(filters.regex(r"^gethist:"))
     async def get_history_cb(client: Client, cq: CallbackQuery):
+        if dump_channel.dump_manager is None:
+            await cq.answer("File storage isn't available right now. Contact the bot admin.", show_alert=True)
+            return
         dump_message_id = int(cq.data.split(":", 1)[1])
-        await dump_manager.forward_to_user(cq.from_user.id, dump_message_id)
+        await dump_channel.dump_manager.forward_to_user(cq.from_user.id, dump_message_id)
         await cq.answer("Sent ✅")

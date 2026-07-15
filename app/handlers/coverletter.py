@@ -20,7 +20,7 @@ from app.database.models import (
 from app.generators.docx_generator import build_cover_letter_docx
 from app.handlers.tailor import _no_resume_or_jd_message
 from app.logger import logger
-from app.storage.dump_channel import dump_manager
+from app.storage import dump_channel
 from app.utils.rate_limiter import rate_limiter
 from app.utils.validators import sanitize_text
 
@@ -38,6 +38,13 @@ def register(app: Client) -> None:
         jd = await get_active_jd(user_id)
         if not resume or not jd:
             await _no_resume_or_jd_message(message, bool(resume), bool(jd))
+            return
+
+        if dump_channel.dump_manager is None:
+            await message.reply_text(
+                "❌ File storage isn't configured yet on this bot (dump channel unreachable). "
+                "Please contact the bot admin."
+            )
             return
 
         status = await message.reply_text("✍️ Writing your cover letter...")
@@ -63,8 +70,8 @@ def register(app: Client) -> None:
             build_cover_letter_docx(data, candidate_name, path)
 
             caption = f"Cover Letter | {jd.get('company', '')} - {jd.get('role', '')} | user_id={user_id}"
-            dump_msg = await dump_manager.upload_document(path, caption=caption)
-            await dump_manager.forward_to_user(user_id, dump_msg.id)
+            dump_msg = await dump_channel.dump_manager.upload_document(path, caption=caption)
+            await dump_channel.dump_manager.forward_to_user(user_id, dump_msg.id)
             os.remove(path)
 
             await add_cover_letter(

@@ -24,7 +24,7 @@ from app.database.models import (
 )
 from app.logger import logger
 from app.parsers.resume_parser import UnsupportedFileTypeError, extract_resume_text
-from app.storage.dump_channel import dump_manager
+from app.storage import dump_channel
 from app.utils.hashing import sha256_text
 from app.utils.state import clear_state, set_state, waiting_for
 from app.utils.validators import validate_file_extension, validate_file_size
@@ -61,8 +61,16 @@ def register(app: Client) -> None:
             return
 
         status = await message.reply_text("⏳ Processing your resume...")
+
         local_path = os.path.join(settings.temp_dir, f"{uuid.uuid4().hex}_{doc.file_name}")
         try:
+            if dump_channel.dump_manager is None:
+                await status.edit_text(
+                    "❌ File storage isn't configured yet on this bot (dump channel unreachable). "
+                    "Please contact the bot admin — see README 'Peer id invalid' troubleshooting."
+                )
+                return
+
             await message.download(file_name=local_path)
             text = extract_resume_text(local_path)
             resume_hash = sha256_text(text)
@@ -77,7 +85,7 @@ def register(app: Client) -> None:
                 return
 
             caption = f"Original Resume | user_id={user_id} | {doc.file_name}"
-            dump_msg = await dump_manager.upload_document(local_path, caption=caption)
+            dump_msg = await dump_channel.dump_manager.upload_document(local_path, caption=caption)
 
             resume_doc = {
                 "user_id": user_id,
