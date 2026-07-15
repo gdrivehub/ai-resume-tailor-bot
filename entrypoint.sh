@@ -9,7 +9,7 @@
 # =====================================================================
 set -e
 
-mkdir -p /app/logs /app/temp
-chown -R botuser:botuser /app/logs /app/temp
+mkdir -p /app/logs /app/temp /app/sessions
+chown -R botuser:botuser /app/logs /app/temp /app/sessions
 
 exec gosu botuser "$@"

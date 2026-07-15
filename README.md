@@ -177,7 +177,7 @@ docker compose up -d --build
 - Stop: `docker compose down`
 - Update after pulling new code: `docker compose up -d --build`
 
-The container runs as a non-root user, has a built-in health check, and is memory/CPU capped in `docker-compose.yml` (edit the `deploy.resources.limits` block to match your VPS specs).
+The container runs as a non-root user, has a built-in health check, and is memory/CPU capped in `docker-compose.yml` (edit the `deploy.resources.limits` block to match your VPS specs). The `./sessions` folder is mounted as a volume so the Telegram login session survives restarts — **do not delete it** unless you intend to force a fresh login.
 
 ### Run with plain `docker run` (no compose)
 
@@ -282,11 +282,40 @@ Once running, open your bot in Telegram and send:
 | Problem | Fix |
 |---|---|
 | Bot doesn't start, "CONFIG ERROR" in logs | Check every required field in `.env` is filled — the bot validates config on startup and tells you exactly what's missing. |
-| "Cannot access dump channel" | Make sure the bot account is an **Administrator** of the channel and `DUMP_CHANNEL_ID` is correct (must start with `-100...`). |
+| **"Peer id invalid" for the dump channel** | See the dedicated section below — this is expected on first setup and is not fatal. |
+| **"FloodWait ... auth.ImportBotAuthorization"** | See the dedicated section below. **Stop the container immediately** (`docker compose stop`) and do not restart until the wait time has passed. |
 | AI calls failing / empty responses | Verify your `GEMINI_API_KEY` or `OPENROUTER_API_KEY` is valid and has remaining free-tier quota. Check `logs/` for the specific provider error. |
 | MongoDB connection timeout | Confirm Network Access in Atlas allows `0.0.0.0/0`, and the password in `MONGO_URI` doesn't contain unescaped special characters. |
 | PDF text extraction returns empty | The PDF is likely scanned images with no embedded text layer — OCR is not currently included; upload a text-based PDF or DOCX instead. |
 | Koyeb/Render marks the service unhealthy | Ensure `ENABLE_HEALTH_SERVER=true` and the service's configured port matches `HEALTH_SERVER_PORT` (default `8080`). |
+
+### "Peer id invalid" when the bot checks the dump channel
+
+This is **not** a permissions problem, even though the message mentions admin access. A Telegram **bot** account can only resolve a raw numeric chat ID once it has received at least one *update* from that chat — being an admin alone doesn't automatically give it that. This commonly happens the very first time you point the bot at a freshly created channel.
+
+The bot no longer crashes when this happens — it logs a warning and keeps running so you can fix it:
+
+1. Start the bot normally (it will log the warning but stay up).
+2. In Telegram, forward **any message** from your private dump channel to the bot in a **DM** (private chat).
+3. Send `/getchannelid` (admin-only) right after forwarding — the bot will reply with the correct numeric ID and cache the channel internally.
+4. Put that ID in `.env` as `DUMP_CHANNEL_ID`, then restart the bot **once**.
+
+Alternatively, just posting one new message in the channel while the bot (as admin) is online will also let it cache the peer automatically.
+
+### FloodWait on `auth.ImportBotAuthorization`
+
+This means Telegram has temporarily rate-limited your bot token's login attempts, usually because the container crash-looped and tried to log in many times in a short window (each restart used to force a brand-new login). Two things now prevent this:
+
+- **The bot's Telegram session is persisted to disk** (`SESSION_DIR`, mounted as a volume in `docker-compose.yml`), so a normal restart reuses the existing session instead of logging in from scratch.
+- **The dump-channel check is non-fatal** (see above), so a bad `DUMP_CHANNEL_ID` no longer causes a crash-restart loop in the first place.
+- If a `FloodWait` does occur, the bot now catches it, logs the exact wait time, and sleeps automatically before retrying — it will **not** exit and let Docker restart it into another flood-wait.
+
+If you're already flood-walled:
+1. Run `docker compose stop` and leave it stopped.
+2. Wait out the exact duration shown in the last `FloodWait` log line (it counts down each time you hit it, so use the **most recent** value).
+3. Start it again with `docker compose up -d` once the wait has passed — do not repeatedly restart in the meantime, as that can reset or extend the wait.
+
+
 
 ---
 

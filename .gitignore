@@ -21,6 +21,7 @@ env/
 # Pyrogram sessions
 *.session
 *.session-journal
+sessions/
 
 # Bot runtime data
 logs/

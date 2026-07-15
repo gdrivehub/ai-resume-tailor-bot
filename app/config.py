@@ -72,6 +72,7 @@ class Settings:
     max_file_size_mb: int = _int("MAX_FILE_SIZE_MB", 10)
     enable_duplicate_cache: bool = _bool("ENABLE_DUPLICATE_CACHE", True)
     temp_dir: str = os.getenv("TEMP_DIR", "./temp")
+    session_dir: str = os.getenv("SESSION_DIR", "./sessions")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     workers: int = _int("WORKERS", 4)
 
@@ -111,3 +112,4 @@ class Settings:
 
 settings = Settings()
 Path(settings.temp_dir).mkdir(parents=True, exist_ok=True)
+Path(settings.session_dir).mkdir(parents=True, exist_ok=True)

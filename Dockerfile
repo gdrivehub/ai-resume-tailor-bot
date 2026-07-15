@@ -44,7 +44,7 @@ ENV PATH=/home/botuser/.local/bin:$PATH \
 COPY . .
 COPY entrypoint.sh /entrypoint.sh
 
-RUN mkdir -p /app/temp /app/logs \
+RUN mkdir -p /app/temp /app/logs /app/sessions \
     && chown -R botuser:botuser /app /home/botuser \
     && chmod +x /entrypoint.sh
 
