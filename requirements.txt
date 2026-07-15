@@ -1,0 +1,33 @@
+# ==== Telegram ====
+pyrogram==2.0.106
+tgcrypto==1.2.5
+
+# ==== Async / Server ====
+uvloop==0.19.0 ; sys_platform != "win32"
+aiohttp==3.9.5
+motor==3.4.0
+pymongo==4.7.2
+
+# ==== AI Providers ====
+google-genai>=1.20.0
+httpx>=0.28.1
+
+# ==== Resume / JD Parsing ====
+pdfplumber==0.11.1
+PyMuPDF==1.24.5
+python-docx==1.1.2
+docx2txt==0.8
+
+# ==== Document Generation ====
+reportlab==4.2.0
+Jinja2==3.1.4
+fpdf2==2.7.9
+
+# ==== Utilities ====
+python-dotenv==1.0.1
+pydantic>=2.12.0
+tenacity==8.3.0
+cachetools==5.3.3
+python-dateutil==2.9.0.post0
+loguru==0.7.2
+apscheduler==3.10.4

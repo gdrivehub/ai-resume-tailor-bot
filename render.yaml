@@ -1,0 +1,35 @@
+services:
+  - type: worker
+    name: ai-resume-tailor-bot
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMINS
+        sync: false
+      - key: DUMP_CHANNEL_ID
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: resume_tailor_bot
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: deepseek/deepseek-chat-v3-0324:free
+      - key: ENABLE_HEALTH_SERVER
+        value: "true"
+      - key: HEALTH_SERVER_PORT
+        value: "8080"
+      - key: LOG_LEVEL
+        value: INFO

@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  resume-tailor-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_resume_tailor_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
