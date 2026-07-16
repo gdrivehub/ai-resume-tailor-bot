@@ -26,7 +26,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: OPENROUTER_MODEL
-        value: deepseek/deepseek-chat-v3-0324:free
+        value: openrouter/free
       - key: ENABLE_HEALTH_SERVER
         value: "true"
       - key: HEALTH_SERVER_PORT

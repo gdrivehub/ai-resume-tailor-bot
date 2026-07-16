@@ -61,7 +61,7 @@ class Settings:
 
     # AI - OpenRouter
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
-    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3-0324:free")
+    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/free")
     openrouter_fallback_models: list[str] = field(default_factory=lambda: _list("OPENROUTER_FALLBACK_MODELS"))
 
     # Behaviour

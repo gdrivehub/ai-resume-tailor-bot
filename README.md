@@ -285,6 +285,7 @@ Once running, open your bot in Telegram and send:
 | **"Peer id invalid" for the dump channel** | See the dedicated section below — this is expected on first setup and is not fatal. |
 | **"FloodWait ... auth.ImportBotAuthorization"** | See the dedicated section below. **Stop the container immediately** (`docker compose stop`) and do not restart until the wait time has passed. |
 | AI calls failing / empty responses | Verify your `GEMINI_API_KEY` or `OPENROUTER_API_KEY` is valid and has remaining free-tier quota. Check `logs/` for the specific provider error. |
+| **OpenRouter model returns 404 "unavailable for free"** | See the dedicated section below — OpenRouter's free-tier lineup rotates without notice. |
 | MongoDB connection timeout | Confirm Network Access in Atlas allows `0.0.0.0/0`, and the password in `MONGO_URI` doesn't contain unescaped special characters. |
 | PDF text extraction returns empty | The PDF is likely scanned images with no embedded text layer — OCR is not currently included; upload a text-based PDF or DOCX instead. |
 | Koyeb/Render marks the service unhealthy | Ensure `ENABLE_HEALTH_SERVER=true` and the service's configured port matches `HEALTH_SERVER_PORT` (default `8080`). |
@@ -315,7 +316,24 @@ If you're already flood-walled:
 2. Wait out the exact duration shown in the last `FloodWait` log line (it counts down each time you hit it, so use the **most recent** value).
 3. Start it again with `docker compose up -d` once the wait has passed — do not repeatedly restart in the meantime, as that can reset or extend the wait.
 
+### OpenRouter model returns 404 "unavailable for free"
 
+OpenRouter's free-tier lineup **rotates without notice** — models get renamed, moved to paid-only, or retired regularly. If you see errors like:
+
+```
+This model is unavailable for free. The paid version is available now - use this slug instead: ...
+```
+
+your configured `OPENROUTER_MODEL` (or one of the `OPENROUTER_FALLBACK_MODELS`) has lost its free tier. Fix it in two steps:
+
+1. **Recommended:** set `OPENROUTER_MODEL=openrouter/free` in your `.env`. This is OpenRouter's own auto-router — it always resolves to whatever model is currently free, so it never goes stale. This is the default in `.env.example` as of this writing.
+2. If you'd rather pin a specific model, check the live list first at https://openrouter.ai/models (filter by price = free) before setting `OPENROUTER_MODEL` or `OPENROUTER_FALLBACK_MODELS` — don't reuse a slug from an old guide or this README, as it may already be gone.
+
+After editing `.env` on your VPS, you only need to restart the container (no rebuild required, since this is just an environment variable):
+
+```bash
+docker compose restart
+```
 
 ---
 
